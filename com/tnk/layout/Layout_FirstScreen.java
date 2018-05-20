@@ -11,6 +11,10 @@ package com.tnk.layout;
 import java.awt.EventQueue;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.Date;
@@ -50,6 +54,7 @@ import javax.swing.filechooser.FileSystemView;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableColumn;
 
+import com.tnk.Item_OperationInput;
 import com.tnk.util.FileTableModel;
 import com.tnk.util.FileTreeCellRenderer;
 import com.tnk.util.Utilities;
@@ -64,6 +69,7 @@ import javax.swing.JProgressBar;
 import javax.swing.JRadioButton;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.JTextPane;
 
 public class Layout_FirstScreen {
 
@@ -85,14 +91,16 @@ public class Layout_FirstScreen {
     private int rowIconPadding = 6;
     /** Used to open/edit/print files. */
     private Desktop desktop;
+    
     /** Provides nice icons and names for files. */
     private FileSystemView fileSystemView;
     private JTable viewerTable;
     
-    /* File controls. */
+    /* File controls. 
     private JButton openFile;
     private JButton printFile;
     private JButton editFile;
+	*/
 
     /* File details. */
     private JScrollPane explorerPane;
@@ -112,6 +120,32 @@ public class Layout_FirstScreen {
 	private ListDisplayPanel ldp;
 	private String selectedPath = "";
     
+	public Item_OperationInput runBlob;
+	public Item_OperationInput runImageDeriv;
+	public Item_OperationInput runImageFeatures;
+	public Item_OperationInput runSURF;
+	public Item_OperationInput runLine;
+	public Item_OperationInput runFitElip;
+	// private JTree tree;
+	
+
+	
+	/*
+	 * [I][P] 
+	 * Image Processing Controls
+	 */
+	public JRadioButton radio_LineDetect;
+	public JRadioButton radio_FitEllipses;
+	public JRadioButton radio_DetectFeatures;
+	public JRadioButton radio_EasySurf;
+	public JRadioButton radio_ImageDerivative;
+	public JRadioButton radio_ImageFeatures;
+	public JRadioButton radio_AIP;					// yet to be implemented
+	public JRadioButton radio_SceneRecognition;		// yet to implement
+	public JRadioButton radio_ColorSegementation;	// implementation to come
+	public JRadioButton radio_CannyEdge;			// in the process of implementing
+	//public JRadioButton radio_
+	
 	
 	/**
 	 * Launch the application.
@@ -125,8 +159,11 @@ public class Layout_FirstScreen {
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
+				
+					
 			}
 		});
+		
 	}
 
 	/**
@@ -134,6 +171,19 @@ public class Layout_FirstScreen {
 	 */
 	public Layout_FirstScreen() {
 		initialize();
+		runLate();
+	}
+	
+	/**
+	 * Run after the interface is loaded
+	 */
+	public  void runLate() {
+		//String runimg = new String();
+		Utilities.DW_AddColouredText("runImageDeriv -" + String.valueOf(runImageDeriv.getEnabled()), Color.BLACK);
+		Utilities.DW_AddColouredText("runImageFeatures -" + String.valueOf(runImageFeatures.getEnabled()), Color.BLACK);
+		Utilities.DW_AddColouredText("runFitElip -" + String.valueOf(runFitElip.getEnabled()), Color.BLACK);
+		Utilities.DW_AddColouredText("runLine -" + String.valueOf(runLine.getEnabled()), Color.BLACK);
+		Utilities.DW_AddColouredText("runSURF -" + String.valueOf(runSURF.getEnabled()), Color.BLACK);
 	}
 
 	/**
@@ -147,7 +197,7 @@ public class Layout_FirstScreen {
         
 		frame = new JFrame();
 		frame.setBounds(0, 0, 1366, 1024);		// for my small ass monitor   :'(
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		frame.getContentPane().setLayout(new MigLayout("", "[grow][][grow][grow]", "[grow][][grow]"));
 		
 		initializeMyViewer();
@@ -174,10 +224,12 @@ public class Layout_FirstScreen {
 		JLabel lblNewLabel = new JLabel("Operation Window");
 		lblNewLabel.setForeground(Color.BLACK);
 		lblNewLabel.setBackground(Color.BLACK);
-		vp_lbl_ops.add(Utilities.OperationPanel());
+		vp_lbl_ops.add(OperationPanel());
 		//TODO Fixme!!!
 		//Utilities.runLineRadio.setActionMap(Utilities.IP_DetectFeatures(input, GrayF32.class));
 	
+		
+		
 		sp_right.setViewport(vp_lbl_ops);
 		
 		
@@ -197,10 +249,10 @@ public class Layout_FirstScreen {
 		JProgressBar progressBar = new JProgressBar();
 		frame.getContentPane().add(progressBar, "cell 0 2 3 2,growx");
 		
-		// Add the ViewerTable to the GUI
+		// Add the ViewerTablee to the GUI
 		//frame.getContentPane().add(viewerTable, "cell 1 0,grow");
-	
-		
+		JTextPane dbWindow = Utilities.DebugWindow();
+		frame.getContentPane().add(dbWindow, "cell 2 0, growy");
 		
 	}
 	
@@ -212,7 +264,7 @@ public class Layout_FirstScreen {
 		}
 		label_se.setText(imagePath);
 		input = UtilImageIO.loadImage(UtilIO.pathExample(imagePath));
-		Utilities.IP_LineDetect(selectedPath, GrayU8.class, GrayS16.class);
+		//Utilities.IP_LineDetect(selectedPath, GrayU8.class, GrayS16.class);
 		//Utilities.IP_DetectFeatures(input, GrayF32.class);
 		//Utilities.IP_FitEllipses(selectedPath);
 		//Utilities.IP_EasySURF(selectedPath);
@@ -489,6 +541,163 @@ public class Layout_FirstScreen {
         gui.repaint();
     }
     
+    
+public JPanel OperationPanel () {
+		
+		JPanel jp = new JPanel(new GridLayout(5,2));
+		jp.add(new JLabel("OPS", JLabel.CENTER));
+		
+		
+		runImageDeriv = new Item_OperationInput();
+		runImageDeriv.setEnabled(false);
+		radio_ImageDerivative = new JRadioButton("Derivate Image");
+		runImageFeatures = new Item_OperationInput();
+		runImageFeatures.setEnabled(false);
+		radio_ImageFeatures = new JRadioButton("Image Features");
+		runSURF = new Item_OperationInput();
+		runSURF.setEnabled(false);
+		radio_EasySurf = new JRadioButton("SURF");
+		runLine = new Item_OperationInput();
+		runLine.setEnabled(false);
+		radio_LineDetect = new JRadioButton("Line Detection");
+		runFitElip = new Item_OperationInput();
+		runFitElip.setEnabled(false);
+		radio_FitEllipses = new JRadioButton("Fit Ellipses");
+		
+		//Contract_OperationInput runBlob = new Contract_OperationInput();
+		//runBlobRadio = new JRadioButton("Blob Detection");	
+		//Contract_OperationInput runAIP = new Contract_OperationInput();
+		//runAIPRadio = new JRadioButton("Associate Interest Points");
+				
+		
+		JButton runIPButton = new JButton();
+		
+		radio_ImageDerivative.addItemListener(new ItemListener() {
+			@Override
+			
+			public void itemStateChanged(ItemEvent arg0) {
+				Utilities.DW_AddColouredText("\n Derivative Radio TOUCHED", Color.BLACK);
+				if (runImageDeriv.getEnabled()) {runImageDeriv.setEnabled(false);} else {runImageDeriv.setEnabled(true);}
+				Utilities.DW_AddColouredText("runImageDeriv -" + String.valueOf(runImageDeriv.getEnabled()), Color.BLACK);
+				Utilities.DW_AddColouredText("runImageFeatures -" + String.valueOf(runImageFeatures.getEnabled()), Color.BLACK);
+				Utilities.DW_AddColouredText("runFitElip -" + String.valueOf(runFitElip.getEnabled()), Color.BLACK);
+				Utilities.DW_AddColouredText("runLine -" + String.valueOf(runLine.getEnabled()), Color.BLACK);
+				Utilities.DW_AddColouredText("runSURF -" + String.valueOf(runSURF.getEnabled()), Color.BLACK);
+			}
+		});
+		radio_ImageFeatures.addItemListener(new ItemListener() {
+			@Override
+			
+			public void itemStateChanged(ItemEvent arg0) {
+				Utilities.DW_AddColouredText("\n Features Radio TOUCHED", Color.BLACK);
+				if (runImageFeatures.getEnabled()) {runImageFeatures.setEnabled(false);} else {runImageFeatures.setEnabled(true);}
+				Utilities.DW_AddColouredText("runImageDeriv -" + String.valueOf(runImageDeriv.getEnabled()), Color.BLACK);
+				Utilities.DW_AddColouredText("runImageFeatures -" + String.valueOf(runImageFeatures.getEnabled()), Color.BLACK);
+				Utilities.DW_AddColouredText("runFitElip -" + String.valueOf(runFitElip.getEnabled()), Color.BLACK);
+				Utilities.DW_AddColouredText("runLine -" + String.valueOf(runLine.getEnabled()), Color.BLACK);
+				Utilities.DW_AddColouredText("runSURF -" + String.valueOf(runSURF.getEnabled()), Color.BLACK);
+			}
+		});
+		radio_EasySurf.addItemListener(new ItemListener() {
+			@Override
+			
+			public void itemStateChanged(ItemEvent arg0) {
+				Utilities.DW_AddColouredText("\n SURF Radio TOUCHED", Color.BLACK);
+				if (runSURF.getEnabled()) {runSURF.setEnabled(false);} else {runSURF.setEnabled(true);}
+				Utilities.DW_AddColouredText("runImageDeriv -" + String.valueOf(runImageDeriv.getEnabled()), Color.BLACK);
+				Utilities.DW_AddColouredText("runImageFeatures -" + String.valueOf(runImageFeatures.getEnabled()), Color.BLACK);
+				Utilities.DW_AddColouredText("runFitElip -" + String.valueOf(runFitElip.getEnabled()), Color.BLACK);
+				Utilities.DW_AddColouredText("runLine -" + String.valueOf(runLine.getEnabled()), Color.BLACK);
+				Utilities.DW_AddColouredText("runSURF -" + String.valueOf(runSURF.getEnabled()), Color.BLACK);
+			}
+		});
+		radio_LineDetect.addItemListener(new ItemListener() {
+			@Override
+			
+			public void itemStateChanged(ItemEvent arg0) {
+				Utilities.DW_AddColouredText("\n Line Radio TOUCHED", Color.BLACK);
+				if (runLine.getEnabled()) {runLine.setEnabled(false);} else {runLine.setEnabled(true);}
+				Utilities.DW_AddColouredText("runImageDeriv -" + String.valueOf(runImageDeriv.getEnabled()), Color.BLACK);
+				Utilities.DW_AddColouredText("runImageFeatures -" + String.valueOf(runImageFeatures.getEnabled()), Color.BLACK);
+				Utilities.DW_AddColouredText("runFitElip -" + String.valueOf(runFitElip.getEnabled()), Color.BLACK);
+				Utilities.DW_AddColouredText("runLine -" + String.valueOf(runLine.getEnabled()), Color.BLACK);
+				Utilities.DW_AddColouredText("runSURF -" + String.valueOf(runSURF.getEnabled()), Color.BLACK);
+			}
+		});
+		radio_FitEllipses.addItemListener(new ItemListener() {
+			@Override
+			
+			public void itemStateChanged(ItemEvent arg0) {
+				Utilities.DW_AddColouredText("\n Ellipses Radio TOUCHED", Color.BLACK);
+				if (runFitElip.getEnabled()) {runFitElip.setEnabled(false);} else {runFitElip.setEnabled(true);}
+				Utilities.DW_AddColouredText("runImageDeriv -" + String.valueOf(runImageDeriv.getEnabled()), Color.BLACK);
+				Utilities.DW_AddColouredText("runImageFeatures -" + String.valueOf(runImageFeatures.getEnabled()), Color.BLACK);
+				Utilities.DW_AddColouredText("runFitElip -" + String.valueOf(runFitElip.getEnabled()), Color.BLACK);
+				Utilities.DW_AddColouredText("runLine -" + String.valueOf(runLine.getEnabled()), Color.BLACK);
+				Utilities.DW_AddColouredText("runSURF -" + String.valueOf(runSURF.getEnabled()), Color.BLACK);
+			}
+		});
+		
+		
+		
+		
+		jp.add(radio_ImageDerivative);
+		jp.add(radio_ImageFeatures);
+		jp.add(radio_EasySurf);
+		jp.add(radio_LineDetect);
+		jp.add(radio_FitEllipses);
+		
+		
+		runIPButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent evt) {
+				Utilities.DW_AddColouredText("Button PRESSED", Color.BLUE);
+				
+				if (runImageDeriv.getEnabled()) {
+					Utilities.DW_AddColouredText("Image Derivation Enabled", Color.BLUE);
+					
+					Utilities.DW_AddColouredText("Running Image Derivative on:", Color.BLUE);
+					Utilities.DW_AddColouredText(selectedPath, Color.black);
+					Utilities.IP_ImageDerivative(selectedPath);
+				}
+				
+				if (runImageFeatures.getEnabled()) {
+					Utilities.DW_AddColouredText("Image Features Enabled", Color.BLUE);
+					
+					Utilities.DW_AddColouredText("Finding Image Features in:", Color.BLUE);
+					Utilities.DW_AddColouredText(selectedPath, Color.black);
+					Utilities.IP_DetectFeatures(input, GrayF32.class);
+				}	
+				if (runSURF.getEnabled()) {
+					Utilities.DW_AddColouredText("Easy Surf Enabled", Color.BLUE);
+					
+					Utilities.DW_AddColouredText("Running Easy SURF on:", Color.BLUE);
+					Utilities.DW_AddColouredText(selectedPath, Color.black);
+					Utilities.IP_EasySURF(selectedPath);
+				}
+				if (runLine.getEnabled()) {
+					Utilities.DW_AddColouredText("Line Detection Enabled", Color.BLUE);
+					
+					Utilities.DW_AddColouredText("Running Line Detection on:", Color.BLUE);
+					Utilities.DW_AddColouredText(selectedPath, Color.black);
+					Utilities.IP_LineDetect(selectedPath, GrayU8.class, GrayS16.class, 7);
+				}
+				if (runFitElip.getEnabled()) {
+					Utilities.DW_AddColouredText("Fit Ellippses Enabled", Color.BLUE);
+					
+					Utilities.DW_AddColouredText("Running Fit Ellipses on:", Color.BLUE);
+					Utilities.DW_AddColouredText(selectedPath, Color.black);
+					Utilities.IP_FitEllipses(selectedPath);
+				}
+				
+	
+			}
+		});
+		
+		jp.add(runIPButton);
+		
+		return jp;
+	}
     
 }
 			

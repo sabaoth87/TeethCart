@@ -1,33 +1,54 @@
 package com.tnk;
 
-public class Contract_OperationInput {
+public class Item_OperationInput {
 
-	private static boolean isEnabled = false;
-	private static boolean isDisabled = true;
+	private boolean isEnabled = false;
+	private boolean isDisabled = true;
+	
+	private String opName;
+	private String opInputPath;
+	private String opOutputPath;
+	
+	// constructors
+	public Item_OperationInput() {
+		
+	}
+	
+	public Item_OperationInput(boolean isEnabled,
+								boolean isDisabled,
+								String opName,
+								String opInputPath,
+								String opOutputPath) {
+		this.isEnabled = isEnabled;
+		this.isDisabled =  isDisabled;
+		this.opName = opName;
+		this.opInputPath = opInputPath;
+		this.opOutputPath = opOutputPath;
+	}
+	
 	/**
 	 * @return the isEnabled
 	 */
-	public static boolean isEnabled() {
-		return isEnabled;
-	}
-	/**
-	 * @param isEnabled the isEnabled to set
-	 */
-	public static void setEnabled(boolean isEnabled) {
-		Contract_OperationInput.isEnabled = isEnabled;
-	}
+	public void setEnabled(boolean isEnabled) {this.isEnabled = isEnabled;}
+	public boolean getEnabled() {return this.isEnabled;}
 	/**
 	 * @return the isDisabled
 	 */
-	public static boolean isDisabled() {
-		return isDisabled;
-	}
+	public void setDisabled(boolean isDisabled) {this.isDisabled = isDisabled;}
+	public boolean getDisabled() {return this.isDisabled;}
 	/**
-	 * @param isDisabled the isDisabled to set
+	 * @return the opName
 	 */
-	public static void setDisabled(boolean isDisabled) {
-		Contract_OperationInput.isDisabled = isDisabled;
-	}
-	
-	
+	public void setName(String opName) {this.opName = opName;}
+	public String getName() {return this.opName;}
+	/**
+	 * @return the opInputPath
+	 */
+	public void setInputPath(String opInputPath) {this.opInputPath = opInputPath;}
+	public String getInputName() {return this.opInputPath;}
+	/**
+	 * @return the opOutputPath
+	 */
+	public void setOutputPath(String opOutputPath) {this.opOutputPath = opOutputPath;}
+	public String getOutputName() {return this.opOutputPath;}
 }
