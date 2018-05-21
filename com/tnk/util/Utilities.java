@@ -77,6 +77,12 @@ import georegression.struct.point.Point2D_F64;
 import georegression.struct.shapes.EllipseRotated_F64;
 import net.miginfocom.swing.MigLayout;
 
+/*
+ * LABEL [UTILITIES]
+ * 
+ * This is my grab bag of utilities for the project
+ */
+
 public class Utilities {
 
 	private static DefaultMutableTreeNode root;
@@ -98,12 +104,6 @@ public class Utilities {
 	public static JTextPane _window;
 
 	/**
-	 * Line Detector
-	 * 
-	 * @return
-	 */
-
-	/**
 	 * Adjusts edge threshold for identifying pixels belonging to a line
 	 */
 	private static final float edgeThreshold = 25;
@@ -113,8 +113,13 @@ public class Utilities {
 	private static final int maxLines = 10;
 	private static ListDisplayPanel listPanel = new ListDisplayPanel();
 
+	public Utilities() {
+		// TODO Do I fill this with anything?
+	}
+	
 	/**
-	 * DriveExplorer Frankenstein'd version of a File Browser; SO:Java ftw
+	 * LABEL [DriveExplorer] 
+	 * Frankenstein'd version of a File Browser; SO:Java FTW !!
 	 * 
 	 * @param fileSystemView
 	 * @return
@@ -140,25 +145,32 @@ public class Utilities {
 				}
 			}
 		}
-
+		
 		// Lets make the tree variable
 		JTree tree = new JTree(treeModel);
 		// Change some attributes
 		tree.setRootVisible(false);
 		// tree.addTreeSelectionListener(tsl);
 		tree.setCellRenderer(new FileTreeCellRenderer());
-		// tree.setShowsRootHandles(true);
+		//tree.setShowsRootHandles(true);
+		tree.setToolTipText("My Tree!");
 		tree.expandRow(0);
 		tree.setVisibleRowCount(15);
-
-		// Create the ChildNode
-		// CreateChildNodes ccn = new CreateChildNodes(fileRoot, root);
-		// new Thread(ccn).start();
-
-		// Return the finished tree to the caller
 		return tree;
 	}
 
+	/**
+	 * LABEL [IP - Detect Features]
+	 * 
+	 * Detects features
+	 * 
+	 * Outputs a .PNG of the found data
+	 * "FeatureDetection_output");
+	 * 
+	 * @param image
+	 * @param imageType
+	 */
+	
 	public static <T extends ImageGray<T>> void IP_DetectFeatures(BufferedImage image, Class<T> imageType) {
 		T input = ConvertBufferedImage.convertFromSingle(image, null, imageType);
 
@@ -195,11 +207,37 @@ public class Utilities {
 
 		// just draw the features onto the input image
 		render.draw(g2);
+		
+		IP_Util_SaveBI(image,"FeatureDetection_output");
+		
 		ShowImages.showWindow(image, "Detected Features", true);
+	}
+	
+
+	/**
+	 * LABEL [IP_Util_SaveBI]
+	 * 
+	 * Simple routine to simplify the output from all of these Image Processes
+	 * during the testing phases(s)
+	 * 
+	 * @param image
+	 * @param fileName
+	 */
+	public static void IP_Util_SaveBI(BufferedImage image, String fileName) {
+		String TAG = "IP_Util_SaveBI ";
+		System.out.println(TAG + "Saving an image to disk...");
+		String outputPath = new String("C:\\test\\output\\"+fileName+".png");
+		File f = new File(outputPath);
+		UtilImageIO.saveImage(image, outputPath);
+		System.out.println(TAG + "Saved " + outputPath);
 	}
 
 	/**
-	 * IP_LineDetect Find lines example from BoofCV - thanks!
+	 * LABEL [IP_LineDetect] 
+	 * Find lines example from BoofCV - thanks!
+	 * 
+	 * Outputs 
+	 * "LineDetection_output.PNG"
 	 * 
 	 * @param imagePath
 	 * @param imageType
@@ -227,12 +265,19 @@ public class Utilities {
 		gui.setPreferredSize(new Dimension(image.getWidth(), image.getHeight()));
 		// ShowImages.showWindow(VisualizeBinaryData.renderBinary(filtered, false,
 		// null),"Binary",true);
+		
+		IP_Util_SaveBI(image,"LineDetection_output");
+		
 		ShowImages.showWindow(gui, "LINEZ@@", true);
 
 	}
 
 	/**
-	 * IP_FitEllipses Fit Ellipses example from BoofCV - thanks!!
+	 * LABEL [IP_FitEllipses] 
+	 * Fit Ellipses example from BoofCV - thanks!!
+	 * 
+	 * Outputs
+	 * "FitEllipses_output"
 	 * 
 	 * @param imagePath
 	 */
@@ -267,12 +312,15 @@ public class Utilities {
 			VisualizeShapes.drawEllipse(ellipse.shape, g2);
 		}
 
+		IP_Util_SaveBI(ConvertBufferedImage.convertTo(filtered, null),"FitEllipses_output");
+		
 		ShowImages.showWindow(VisualizeBinaryData.renderBinary(filtered, false, null), "Binary", true);
 		ShowImages.showWindow(image, "Ellipses", true);
 	}
 
 	/**
-	 * IP_EasySurf Easy SURF example from BoofCV - thanks!!
+	 * LABEL [IP_EasySurf] 
+	 * Easy SURF example from BoofCV - thanks!!
 	 * 
 	 * @param imagePath
 	 *            string path to the image
@@ -287,8 +335,15 @@ public class Utilities {
 		// specify the image to process
 		surf.detect(input);
 
+		
+		
+		BrightFeature feature00 = surf.getDescription(0);
+		//feature00.
+		
+		
 		System.out.println("Found Features: " + surf.getNumberOfFeatures());
 		System.out.println("First descriptor's first value: " + surf.getDescription(0).value[0]);
+		//System.out.println("First descriptor's first value: " + surf.getDescription(0).);
 	}
 
 	/*
@@ -353,11 +408,28 @@ public class Utilities {
 		gui.addImage(VisualizeImageData.colorizeSign(derivXYX, null, -1), "Sobel XYX");
 
 		
-		
+		//Output the results to disk
 		String outputPath = new String("C:\\test\\output\\output00.png");
 		
 		File f = new File(outputPath);
 		UtilImageIO.saveImage(derivX, outputPath);
+		
+		IP_Util_SaveBI(ConvertBufferedImage.convertTo(derivXYX, null),"DerivXYX_output");
+		
+		BufferedImage outputXYX = VisualizeImageData.colorizeSign(derivXYX, null, -1);
+		IP_Util_SaveBI(outputXYX, "DerivXYX_output_colourized");
+		
+		BufferedImage outputX = VisualizeImageData.colorizeSign(derivX, null, -1);
+		IP_Util_SaveBI(outputX, "DerivX_output_colourized");
+		
+		BufferedImage outputY = VisualizeImageData.colorizeSign(derivY, null, -1);
+		IP_Util_SaveBI(outputY, "DerivY_output_colourized");
+		
+		BufferedImage outputXX = VisualizeImageData.colorizeSign(derivXX, null, -1);
+		IP_Util_SaveBI(outputXX, "DerivXX_output_colourized");
+		
+		BufferedImage outputYY = VisualizeImageData.colorizeSign(derivYY, null, -1);
+		IP_Util_SaveBI(outputYY, "DerivYY_output_colourized");
 		
 		frame.add(gui);
 		frame.setVisible(true);		
