@@ -213,6 +213,7 @@ public class Utilities {
 		ShowImages.showWindow(image, "Detected Features", true);
 	}
 	
+<<<<<<< HEAD
 
 	/**
 	 * LABEL [IP_Util_SaveBI]
@@ -233,6 +234,28 @@ public class Utilities {
 	}
 
 	/**
+=======
+
+	/**
+	 * LABEL [IP_Util_SaveBI]
+	 * 
+	 * Simple routine to simplify the output from all of these Image Processes
+	 * during the testing phases(s)
+	 * 
+	 * @param image
+	 * @param fileName
+	 */
+	public static void IP_Util_SaveBI(BufferedImage image, String fileName) {
+		String TAG = "IP_Util_SaveBI ";
+		System.out.println(TAG + "Saving an image to disk...");
+		String outputPath = new String("C:\\test\\output\\"+fileName+".png");
+		File f = new File(outputPath);
+		UtilImageIO.saveImage(image, outputPath);
+		System.out.println(TAG + "Saved " + outputPath);
+	}
+
+	/**
+>>>>>>> origin/BreadBanjo
 	 * LABEL [IP_LineDetect] 
 	 * Find lines example from BoofCV - thanks!
 	 * 
