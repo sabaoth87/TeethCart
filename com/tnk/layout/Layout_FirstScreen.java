@@ -2,9 +2,9 @@ package com.tnk.layout;
 
 /*
  *
- * Main Screen for the TeethCart Alpha
+ * Main Screen for the TeethCart Alpha Application
  *  
- * 
+ *  A foray back into the Computer Vision industry
  * 
  */
 
@@ -258,6 +258,7 @@ public class Layout_FirstScreen {
 	
 	private void Proc_SelectedImage(String imagePath) {
 		// TODO Auto-generated method stub
+		
 		if (imagePath == null) {
 			label_se.setText(imagePath);
 			imagePath = "C:\\Users\\Tom\\Pictures\\download.jpg";
@@ -335,6 +336,9 @@ public class Layout_FirstScreen {
     	 * Based on a SO answer for a simple drive explorer
     	 * 
     	 * TODO [LIST]  File Explorer  [LIST]
+    	 * FIXME These are for repairs
+    	 * MEMBERRY These are for nostalgia, or caveats, or pitfalls
+    	 * 
     	 * - Icons?
     	 * - Just show folders
     	 * - Last location browsed?
