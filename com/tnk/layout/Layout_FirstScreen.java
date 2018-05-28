@@ -50,6 +50,9 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
+
+import org.bytedeco.javacpp.FlyCapture2.Image;
+
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableColumn;
@@ -58,6 +61,7 @@ import com.tnk.Item_OperationInput;
 import com.tnk.util.FileTableModel;
 import com.tnk.util.FileTreeCellRenderer;
 import com.tnk.util.Utilities;
+import com.tnk.util.impro.ImageSegmentationExample;
 
 import boofcv.gui.ListDisplayPanel;
 import boofcv.io.UtilIO;
@@ -114,25 +118,14 @@ public class Layout_FirstScreen {
     private JRadioButton isDirectory;
     private JRadioButton isFile;
     
-    /* Image Processing */
-    /* Thanks BoofCV!   */
-    private BufferedImage input;
-	private ListDisplayPanel ldp;
-	private String selectedPath = "";
-    
-	public Item_OperationInput runBlob;
-	public Item_OperationInput runImageDeriv;
-	public Item_OperationInput runImageFeatures;
-	public Item_OperationInput runSURF;
-	public Item_OperationInput runLine;
-	public Item_OperationInput runFitElip;
 	// private JTree tree;
-	
-
 	
 	/*
 	 * [I][P] 
 	 * Image Processing Controls
+	 
+     		Thanks BoofCV!   
+    
 	 */
 	public JRadioButton radio_LineDetect;
 	public JRadioButton radio_FitEllipses;
@@ -143,7 +136,22 @@ public class Layout_FirstScreen {
 	public JRadioButton radio_AIP;					// yet to be implemented
 	public JRadioButton radio_SceneRecognition;		// yet to implement
 	public JRadioButton radio_ColorSegementation;	// implementation to come
-	public JRadioButton radio_CannyEdge;			// in the process of implementing
+	public JRadioButton radio_CannyEdge;
+	public JRadioButton radio_SuperPixel;
+	
+	private BufferedImage input;
+	private ListDisplayPanel ldp;
+	private String selectedPath = "";
+    
+	public Item_OperationInput runBlob;
+	public Item_OperationInput runImageDeriv;
+	public Item_OperationInput runImageFeatures;
+	public Item_OperationInput runSURF;
+	public Item_OperationInput runLine;
+	public Item_OperationInput runFitElip;
+	public Item_OperationInput runSuperpixel;
+	
+	// in the process of implementing
 	//public JRadioButton radio_
 	
 	
@@ -567,6 +575,9 @@ public JPanel OperationPanel () {
 		runFitElip = new Item_OperationInput();
 		runFitElip.setEnabled(false);
 		radio_FitEllipses = new JRadioButton("Fit Ellipses");
+		runSuperpixel = new Item_OperationInput();
+		runSuperpixel.setEnabled(false);
+		radio_SuperPixel = new JRadioButton("Superpixel Image");
 		
 		//Contract_OperationInput runBlob = new Contract_OperationInput();
 		//runBlobRadio = new JRadioButton("Blob Detection");	
@@ -642,6 +653,15 @@ public JPanel OperationPanel () {
 			}
 		});
 		
+		radio_SuperPixel.addItemListener(new ItemListener() {
+			@Override
+			
+			public void itemStateChanged(ItemEvent arg0) {
+				Utilities.DW_AddColouredText("\n Superpixel Radio TOUCHED", Color.BLACK);
+				if (runSuperpixel.getEnabled()) {runSuperpixel.setEnabled(false);} else {runSuperpixel.setEnabled(true);}
+			}
+		});
+		
 		
 		
 		
@@ -650,6 +670,7 @@ public JPanel OperationPanel () {
 		jp.add(radio_EasySurf);
 		jp.add(radio_LineDetect);
 		jp.add(radio_FitEllipses);
+		jp.add(radio_SuperPixel);
 		
 		
 		runIPButton.addActionListener(new ActionListener() {
@@ -692,6 +713,13 @@ public JPanel OperationPanel () {
 					Utilities.DW_AddColouredText("Running Fit Ellipses on:", Color.BLUE);
 					Utilities.DW_AddColouredText(selectedPath, Color.black);
 					Utilities.IP_FitEllipses(selectedPath);
+				}
+				if (runSuperpixel.getEnabled()) {
+					Utilities.DW_AddColouredText("Superpixel Run en Route!", Color.MAGENTA);
+					
+					Utilities.DW_AddColouredText("Running Superpixel Example on:", Color.BLUE);
+					Utilities.DW_AddColouredText(selectedPath, Color.black);
+					Utilities.IP_ImageSegmentation(selectedPath);
 				}
 				
 	

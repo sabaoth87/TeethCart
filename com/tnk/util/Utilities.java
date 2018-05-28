@@ -32,6 +32,9 @@ import javax.swing.text.StyledDocument;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 
+import org.ddogleg.struct.FastQueue;
+import org.ddogleg.struct.GrowQueue_I32;
+
 import com.tnk.Item_OperationInput;
 
 import boofcv.abst.feature.detdesc.DetectDescribePoint;
@@ -41,12 +44,16 @@ import boofcv.abst.feature.detect.line.DetectLineHoughFoot;
 import boofcv.abst.feature.detect.line.DetectLineHoughFootSubimage;
 import boofcv.abst.feature.detect.line.DetectLineHoughPolar;
 import boofcv.abst.filter.derivative.AnyImageDerivative;
+import boofcv.abst.segmentation.ImageSuperpixels;
 import boofcv.alg.filter.binary.BinaryImageOps;
 import boofcv.alg.filter.binary.Contour;
 import boofcv.alg.filter.binary.ThresholdImageOps;
+import boofcv.alg.filter.blur.GBlurImageOps;
 import boofcv.alg.filter.derivative.DerivativeType;
 import boofcv.alg.filter.derivative.GImageDerivativeOps;
 import boofcv.alg.misc.ImageStatistics;
+import boofcv.alg.segmentation.ComputeRegionMeanColor;
+import boofcv.alg.segmentation.ImageSegmentationOps;
 import boofcv.alg.shapes.FitData;
 import boofcv.alg.shapes.ShapeFittingOps;
 import boofcv.core.image.border.BorderType;
@@ -56,10 +63,14 @@ import boofcv.factory.feature.detect.line.ConfigHoughFoot;
 import boofcv.factory.feature.detect.line.ConfigHoughFootSubimage;
 import boofcv.factory.feature.detect.line.ConfigHoughPolar;
 import boofcv.factory.feature.detect.line.FactoryDetectLineAlgs;
+import boofcv.factory.segmentation.ConfigFh04;
+import boofcv.factory.segmentation.FactoryImageSegmentation;
+import boofcv.factory.segmentation.FactorySegmentationAlg;
 import boofcv.gui.ListDisplayPanel;
 import boofcv.gui.binary.VisualizeBinaryData;
 import boofcv.gui.feature.FancyInterestPointRender;
 import boofcv.gui.feature.ImageLinePanel;
+import boofcv.gui.feature.VisualizeRegions;
 import boofcv.gui.feature.VisualizeShapes;
 import boofcv.gui.image.ShowImages;
 import boofcv.gui.image.VisualizeImageData;
@@ -68,10 +79,15 @@ import boofcv.io.image.ConvertBufferedImage;
 import boofcv.io.image.UtilImageIO;
 import boofcv.struct.ConnectRule;
 import boofcv.struct.feature.BrightFeature;
+import boofcv.struct.feature.ColorQueue_F32;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayS16;
+import boofcv.struct.image.GrayS32;
 import boofcv.struct.image.GrayU8;
+import boofcv.struct.image.ImageBase;
 import boofcv.struct.image.ImageGray;
+import boofcv.struct.image.ImageType;
+import boofcv.struct.image.Planar;
 import georegression.struct.line.LineParametric2D_F32;
 import georegression.struct.point.Point2D_F64;
 import georegression.struct.shapes.EllipseRotated_F64;
@@ -81,6 +97,11 @@ import net.miginfocom.swing.MigLayout;
  * LABEL [UTILITIES]
  * 
  * This is my grab bag of utilities for the project
+ */
+/*
+ * LABEL [LIST OF TASKS]
+ * 
+ * TODO-001 Separate out the IP Methods to a Class of their own - they deserve it now!  
  */
 
 public class Utilities {
@@ -213,7 +234,6 @@ public class Utilities {
 		ShowImages.showWindow(image, "Detected Features", true);
 	}
 	
-<<<<<<< HEAD
 
 	/**
 	 * LABEL [IP_Util_SaveBI]
@@ -234,28 +254,6 @@ public class Utilities {
 	}
 
 	/**
-=======
-
-	/**
-	 * LABEL [IP_Util_SaveBI]
-	 * 
-	 * Simple routine to simplify the output from all of these Image Processes
-	 * during the testing phases(s)
-	 * 
-	 * @param image
-	 * @param fileName
-	 */
-	public static void IP_Util_SaveBI(BufferedImage image, String fileName) {
-		String TAG = "IP_Util_SaveBI ";
-		System.out.println(TAG + "Saving an image to disk...");
-		String outputPath = new String("C:\\test\\output\\"+fileName+".png");
-		File f = new File(outputPath);
-		UtilImageIO.saveImage(image, outputPath);
-		System.out.println(TAG + "Saved " + outputPath);
-	}
-
-	/**
->>>>>>> origin/BreadBanjo
 	 * LABEL [IP_LineDetect] 
 	 * Find lines example from BoofCV - thanks!
 	 * 
@@ -523,5 +521,100 @@ public class Utilities {
 			e.printStackTrace();
 		}
 	}
+	
+	/**
+	 * 
+	 * @param imagePath
+	 */
+	public static void IP_ImageSegmentation(String imagePath) {
+		// TODO Do I fill this with anything?
+		
+		BufferedImage image = UtilImageIO.loadImage(UtilIO.pathExample(imagePath));
 
+		// you probably don't want to segment along the image's alpha channel and the code below assumes 3 channels
+		image = ConvertBufferedImage.stripAlphaChannel(image);
+
+		// Select input image type.  Some algorithms behave different depending on image type
+		ImageType<Planar<GrayF32>> imageType = ImageType.pl(3, GrayF32.class);
+//		ImageType<Planar<GrayU8>> imageType = ImageType.pl(3,GrayU8.class);
+//		ImageType<GrayF32> imageType = ImageType.single(GrayF32.class);
+//		ImageType<GrayU8> imageType = ImageType.single(GrayU8.class);
+
+//		ImageSuperpixels alg = FactoryImageSegmentation.meanShift(null, imageType);
+//		ImageSuperpixels alg = FactoryImageSegmentation.slic(new ConfigSlic(400), imageType);
+		ImageSuperpixels alg = FactoryImageSegmentation.fh04(new ConfigFh04(100,30), imageType);
+//		ImageSuperpixels alg = FactoryImageSegmentation.watershed(null,imageType);
+
+		// Convert image into BoofCV format
+		ImageBase colour = imageType.createImage(image.getWidth(),image.getHeight());
+		ConvertBufferedImage.convertFrom(image, colour, true);
+
+		// Segment and display results
+		performSegmentation(alg,colour);
+		
+	}
+
+	public static <T extends ImageBase<? super T>>
+	void performSegmentation( ImageSuperpixels<? super T> alg , T colour )
+	{
+		// Segmentation often works better after blurring the image.  Reduces high frequency image components which
+		// can cause over segmentation
+		GBlurImageOps.gaussian(colour, colour, 0.5, -1, null);
+
+		// Storage for segmented image.  Each pixel will be assigned a label from 0 to N-1, where N is the number
+		// of segments in the image
+		GrayS32 pixelToSegment = new GrayS32(colour.width,colour.height);
+
+		// Segmentation magic happens here
+		alg.segment(colour,pixelToSegment);
+
+		// Displays the results
+		visualize(pixelToSegment,colour,alg.getTotalSuperpixels());
+	}
+	
+	/**
+	 * Visualizes results three ways.  1) Colorized segmented image where each region is given a random color.
+	 * 2) Each pixel is assigned the mean color through out the region. 3) Black pixels represent the border
+	 * between regions.
+	 */
+	public static <T extends ImageBase<? super T>>
+	void visualize(GrayS32 pixelToRegion , T colour , int numSegments  )
+	{
+		// Computes the mean color inside each region
+		ImageType<? super T> type = colour.getImageType();
+		ComputeRegionMeanColor<? super T> colorize = FactorySegmentationAlg.regionMeanColor(type);
+
+		FastQueue<float[]> segmentColor = new ColorQueue_F32(type.getNumBands());
+		segmentColor.resize(numSegments);
+
+		GrowQueue_I32 regionMemberCount = new GrowQueue_I32();
+		regionMemberCount.resize(numSegments);
+
+		ImageSegmentationOps.countRegionPixels(pixelToRegion, numSegments, regionMemberCount.data);
+		colorize.process(colour,pixelToRegion,regionMemberCount,segmentColor);
+
+		// Draw each region using their average color
+		BufferedImage outColour = VisualizeRegions.regionsColor(pixelToRegion,segmentColor,null);
+		// Draw each region by assigning it a random color
+		BufferedImage outSegments = VisualizeRegions.regions(pixelToRegion, numSegments, null);
+
+		// Make region edges appear red
+		BufferedImage outBorder = new BufferedImage(colour.width,colour.height,BufferedImage.TYPE_INT_RGB);
+		ConvertBufferedImage.convertTo(colour, outBorder, true);
+		VisualizeRegions.regionBorders(pixelToRegion,0xFF0000,outBorder);
+
+		IP_Util_SaveBI(outColour, "ImageSegmentation_outColor");
+		IP_Util_SaveBI(outBorder, "ImageSegmentation_outBorder");
+		IP_Util_SaveBI(outSegments, "ImageSegmentation_outSegments");
+		
+		// anamoly
+		
+		// Show the visualization results
+		ListDisplayPanel gui = new ListDisplayPanel();
+		gui.addImage(outColour,"Color of Segments");
+		gui.addImage(outBorder, "Region Borders");
+		gui.addImage(outSegments, "Regions");
+		ShowImages.showWindow(gui,"Superpixels", false);
+	}
+	
 }
