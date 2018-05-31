@@ -157,12 +157,12 @@ public class Utilities {
 		// show the file system roots
 		File[] roots = fileSystemView.getRoots();
 		for (File fileSystemRoot : roots) {
-			DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(fileSystemRoot);
-			root.add(rootNode);
+			DefaultMutableTreeNode node = new DefaultMutableTreeNode(fileSystemRoot);
+			root.add(node);
 			File[] files = fileSystemView.getFiles(fileSystemRoot, true);
 			for (File file : files) {
 				if (file.isDirectory()) {
-					rootNode.add(new DefaultMutableTreeNode(file));
+					node.add(new DefaultMutableTreeNode(file));
 				}
 			}
 		}
