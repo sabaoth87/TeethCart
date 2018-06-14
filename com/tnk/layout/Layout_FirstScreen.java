@@ -21,6 +21,7 @@ import java.util.Date;
 import java.util.List;
 
 import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JFrame;
@@ -71,6 +72,8 @@ public class Layout_FirstScreen {
 	private DefaultMutableTreeNode root;
 	private JTree tree;
 	private JFrame frame;
+	private JPanel fileMainDetails;
+	private JScrollPane previewWindow;
 
 	/** Main GUI container */
 	private JPanel gui;
@@ -130,6 +133,7 @@ public class Layout_FirstScreen {
 	public JRadioButton radio_ColorSegementation; // implementation to come
 	public JRadioButton radio_CannyEdge;
 	public JRadioButton radio_SuperPixel;
+	public JRadioButton radio_AlgoAlpha;
 
 	private BufferedImage input;
 	private ListDisplayPanel ldp;
@@ -142,6 +146,7 @@ public class Layout_FirstScreen {
 	public Item_OperationInput runLine;
 	public Item_OperationInput runFitElip;
 	public Item_OperationInput runSuperpixel;
+	public Item_OperationInput runAlgoAlpha;
 
 	// in the process of implementing
 	// public JRadioButton radio_
@@ -186,6 +191,23 @@ public class Layout_FirstScreen {
 
 	/**
 	 * Initialize the contents of the frame.
+	 * 	   _____________  _____________   ___________
+	 *   ||  			||  			|| 			|
+	 *   ||  			||  			|| 			|
+	 *   ||  			||  			|| 			| 
+	 *   ||  	tree	||  	table	|| 	debug	|  
+	 *   ||  			||  			|| 			| 
+	 *   ||  			||  			|| 			| 
+	 *   || ____________||______________||__________|
+	 *   ||  			||  			|| 			|
+	 *   ||  			||  			|| 			|
+	 *   ||  	details	||  operations 	|| 	image	|  
+	 *   ||  			||  			|| 	preview	| 
+	 *   || ____________||______________||__________|
+	 * 
+	 *  This MiG layout shit is something I am going to have to work at
+	 *  
+	 * 
 	 */
 	private void initialize() {
 
@@ -193,10 +215,13 @@ public class Layout_FirstScreen {
 		desktop = Desktop.getDesktop();
 
 		frame = new JFrame();
-		frame.setBounds(0, 0, 800, 600); // for my small ass monitor :'(
+		frame.setBounds(0, 0, 1024, 768); // for my small ass monitor :'(
 		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		frame.getContentPane().setLayout(new MigLayout("", "[grow][][grow][grow]", "[grow][][grow]"));
+		frame.getContentPane().setLayout(new MigLayout("", "[grow][][grow][grow]",
+														   "[grow][][grow]"));
 
+		//this is for the file details
+		// TODO make this into the picture preview
 		initializeMyViewer();
 		initializeMyExplorer();
 
@@ -209,6 +234,12 @@ public class Layout_FirstScreen {
 		scrollpane_se.setBackground(Color.GRAY);
 		scrollpane_se.setColumnHeaderView(label_se);
 
+		readable = new JCheckBox();
+		writable = new JCheckBox();
+		executable = new JCheckBox();
+		isDirectory = new JRadioButton();
+		isFile = new JRadioButton();
+		
 		// LABEL Folder View
 		// Add the File Explorer tree to the Content Pane
 		table = new JTable();
@@ -220,13 +251,13 @@ public class Layout_FirstScreen {
 			@Override
 			public void valueChanged(ListSelectionEvent lse) {
 				int row = table.getSelectionModel().getLeadSelectionIndex();
-				setFileDetails(((FileTableModel) table.getModel()).getFile(row));
+				//setFileDetails(((FileTableModel) table.getModel()).getFile(row));
 			}
 		};
 
 		table.getSelectionModel().addListSelectionListener(listSelectionListener);
 		explorerPane = new JScrollPane();
-		frame.getContentPane().add(explorerPane, "cell 0 0,grow");
+		
 		Dimension d = explorerPane.getPreferredSize();
 		explorerPane.setPreferredSize(new Dimension((int)d.getWidth(), (int)d.getHeight()));
 		// LABEL Folder View END
@@ -245,27 +276,39 @@ public class Layout_FirstScreen {
 
 		sp_right.setViewport(vp_lbl_ops);
 
-		frame.getContentPane().add(sp_right, "cell 1 1,growx");
+		
 
 		JScrollPane scrollpane_center = new JScrollPane();
 		scrollpane_center.setViewportView(viewerTable);
 		scrollpane_center.setBorder(new BevelBorder(BevelBorder.RAISED, Color.darkGray, null, null, null));
 		scrollpane_center.setBackground(Color.GRAY);
-		frame.getContentPane().add(scrollpane_center, "cell 1 0,grow");
 
 		// This used to be the
 		// frame.getContentPane().add(scrollpane_se, "cell 1 1,grow");
 		// vp_panel_right.add(scrollpane_right);
 
 		// TODO INvestigate this progress bar!
-		JProgressBar progressBar = new JProgressBar();
-		frame.getContentPane().add(progressBar, "cell 0 2 3 2,growx");
+		progressBar = new JProgressBar();
 
 		// Add the ViewerTablee to the GUI
 		// frame.getContentPane().add(viewerTable, "cell 1 0,grow");
 		JTextPane dbWindow = Utilities.DebugWindow();
+		previewWindow = new JScrollPane();
+		
+		frame.getContentPane().add(explorerPane, "cell 0 0,grow");
+		frame.getContentPane().add(scrollpane_center, "cell 1 0,growx");
+		frame.getContentPane().add(sp_right, "cell 1 1,growx");
 		frame.getContentPane().add(dbWindow, "cell 2 0, growy");
+		frame.getContentPane().add(fileMainDetails, "cell 0 1, grow");
+		frame.getContentPane().add(previewWindow, "cell 2 1, grow, width 200:300:400, height 200:300:400");
+		frame.getContentPane().add(progressBar, "cell 0 2 3 2,growx");
 
+		progressBar.setMinimum(0);
+		progressBar.setMaximum(2);
+		
+		
+		progressBar.setValue(2);
+		progressBar.setStringPainted(true);
 	}
 
 	private void Proc_SelectedImage(String imagePath) {
@@ -275,13 +318,17 @@ public class Layout_FirstScreen {
 			label_se.setText(imagePath);
 			imagePath = "C:\\Users\\Tom\\Pictures\\download.jpg";
 		}
-		label_se.setText(imagePath);
-		input = UtilImageIO.loadImage(UtilIO.pathExample(imagePath));
-		// Utilities.IP_LineDetect(selectedPath, GrayU8.class, GrayS16.class);
-		// Utilities.IP_DetectFeatures(input, GrayF32.class);
-		// Utilities.IP_FitEllipses(selectedPath);
-		// Utilities.IP_EasySURF(selectedPath);
-		scrollpane_se.setViewportView(ldp);
+		System.out.println(selectedPath + " is a Picture!");
+		label_se.setText(selectedPath);
+		input = UtilImageIO.loadImage(UtilIO.pathExample(selectedPath));
+		
+		JLabel displayPreview = new JLabel(new ImageIcon(input.getScaledInstance(200, 200, 0)));
+		
+		//previewWindow = new JScrollPane(displayPreview);
+		//frame.getContentPane().remove();
+		previewWindow.setViewportView(new JScrollPane(displayPreview));
+		//frame.getContentPane().add(previewWindow, "cell 2 1, grow, width 100:150:200, height 100:150:200");
+		
 	}
 
 	public class CreateChildNodes implements Runnable {
@@ -361,6 +408,7 @@ public class Layout_FirstScreen {
 		};
 
 		fileSystemView = FileSystemView.getFileSystemView();
+		
 		tree = Utilities.DriveExplorer(fileSystemView);
 		tree.addTreeSelectionListener(treeSelectionListener);
 		Dimension preferredSize = tree.getPreferredSize();
@@ -379,18 +427,16 @@ public class Layout_FirstScreen {
 		listSelectionListener = new ListSelectionListener() {
 			@Override
 			public void valueChanged(ListSelectionEvent lse) {
+				System.out.println("Selection changed to " + selectedPath);
 				int row = viewerTable.getSelectionModel().getLeadSelectionIndex();
-				if (selectedPath.endsWith(".jpg")) {
-					// Utilities.runLineRadio.
+				if (selectedPath.endsWith(".jpg") || selectedPath.endsWith(".png")) {
+					
 					Proc_SelectedImage(selectedPath);
 				}
-				if (selectedPath.endsWith(".png")) {
-					// Utilities.runLineRadio.
-					Proc_SelectedImage(selectedPath);
-				}
-				 
+				
+				if (((FileTableModel) viewerTable.getModel()).getFile(row) != null) {
 				setFileDetails(((FileTableModel) viewerTable.getModel()).getFile(row));
-
+				}
 			}
 		};
 		viewerTable.getSelectionModel().addListSelectionListener(listSelectionListener);
@@ -399,7 +445,7 @@ public class Layout_FirstScreen {
 		// explorerPane.setPreferredSize(new Dimension((int)d.getWidth(),
 		// (int)d.getHeight()/2));
 		// Details of a file
-		JPanel fileMainDetails = new JPanel(new BorderLayout(4, 2));
+		fileMainDetails = new JPanel(new BorderLayout(4, 2));
 		fileMainDetails.setBorder(new EmptyBorder(0, 6, 0, 6));
 
 		JPanel fileDetailsLabels = new JPanel(new GridLayout(0, 1, 2, 2));
@@ -408,7 +454,7 @@ public class Layout_FirstScreen {
 		JPanel fileDetailsValues = new JPanel(new GridLayout(0, 1, 2, 2));
 		fileMainDetails.add(fileDetailsValues, BorderLayout.CENTER);
 
-		frame.getContentPane().add(fileMainDetails, "cell 0 1, grow");
+		
 
 		fileDetailsLabels.add(new JLabel("File", JLabel.TRAILING));
 		fileName = new JLabel();
@@ -539,6 +585,10 @@ public class Layout_FirstScreen {
 		 */
 		date.setText(new Date(file.lastModified()).toString());
 		size.setText(file.length() + " bytes");
+		
+		if (file != null) {
+		
+		// TODO I think the checkboxes may be broken?
 		readable.setSelected(file.canRead());
 		writable.setSelected(file.canWrite());
 		executable.setSelected(file.canExecute());
@@ -546,14 +596,35 @@ public class Layout_FirstScreen {
 
 		isFile.setSelected(file.isFile());
 
+		}
+		if (gui != null) {
+		
 		JFrame f = (JFrame) gui.getTopLevelAncestor();
 		if (f != null) {
 			f.setTitle(
 
 					"Browsing :: " + fileSystemView.getSystemDisplayName(file));
 		}
+		
+		System.out.println("Selected " + selectedPath);
+		Utilities.DW_AddColouredText(file.getAbsolutePath(), Color.ORANGE);
+		if (selectedPath.endsWith(".png") || selectedPath.endsWith(".jpg"))
+		{
+			input = UtilImageIO.loadImage(UtilIO.pathExample(file.getPath()));
+			
+			JLabel displayPreview = new JLabel(new ImageIcon(input));
+			
+			previewWindow.setViewportView(displayPreview);
+		}
+		else {
+			label_se.setText(file.getPath());
+		}
+		
+		
+		
 
 		gui.repaint();
+		}
 	}
 
 	public JPanel OperationPanel() {
@@ -579,6 +650,10 @@ public class Layout_FirstScreen {
 		runSuperpixel = new Item_OperationInput();
 		runSuperpixel.setEnabled(false);
 		radio_SuperPixel = new JRadioButton("Superpixel Image");
+		runAlgoAlpha = new Item_OperationInput();
+		runAlgoAlpha.setEnabled(false);
+		radio_AlgoAlpha = new JRadioButton("Alpha");
+		
 
 		// Contract_OperationInput runBlob = new Contract_OperationInput();
 		// runBlobRadio = new JRadioButton("Blob Detection");
@@ -597,13 +672,6 @@ public class Layout_FirstScreen {
 				} else {
 					runImageDeriv.setEnabled(true);
 				}
-				Utilities.DW_AddColouredText("runImageDeriv -" + String.valueOf(runImageDeriv.getEnabled()),
-						Color.BLACK);
-				Utilities.DW_AddColouredText("runImageFeatures -" + String.valueOf(runImageFeatures.getEnabled()),
-						Color.BLACK);
-				Utilities.DW_AddColouredText("runFitElip -" + String.valueOf(runFitElip.getEnabled()), Color.BLACK);
-				Utilities.DW_AddColouredText("runLine -" + String.valueOf(runLine.getEnabled()), Color.BLACK);
-				Utilities.DW_AddColouredText("runSURF -" + String.valueOf(runSURF.getEnabled()), Color.BLACK);
 			}
 		});
 		radio_ImageFeatures.addItemListener(new ItemListener() {
@@ -616,13 +684,6 @@ public class Layout_FirstScreen {
 				} else {
 					runImageFeatures.setEnabled(true);
 				}
-				Utilities.DW_AddColouredText("runImageDeriv -" + String.valueOf(runImageDeriv.getEnabled()),
-						Color.BLACK);
-				Utilities.DW_AddColouredText("runImageFeatures -" + String.valueOf(runImageFeatures.getEnabled()),
-						Color.BLACK);
-				Utilities.DW_AddColouredText("runFitElip -" + String.valueOf(runFitElip.getEnabled()), Color.BLACK);
-				Utilities.DW_AddColouredText("runLine -" + String.valueOf(runLine.getEnabled()), Color.BLACK);
-				Utilities.DW_AddColouredText("runSURF -" + String.valueOf(runSURF.getEnabled()), Color.BLACK);
 			}
 		});
 		radio_EasySurf.addItemListener(new ItemListener() {
@@ -635,13 +696,6 @@ public class Layout_FirstScreen {
 				} else {
 					runSURF.setEnabled(true);
 				}
-				Utilities.DW_AddColouredText("runImageDeriv -" + String.valueOf(runImageDeriv.getEnabled()),
-						Color.BLACK);
-				Utilities.DW_AddColouredText("runImageFeatures -" + String.valueOf(runImageFeatures.getEnabled()),
-						Color.BLACK);
-				Utilities.DW_AddColouredText("runFitElip -" + String.valueOf(runFitElip.getEnabled()), Color.BLACK);
-				Utilities.DW_AddColouredText("runLine -" + String.valueOf(runLine.getEnabled()), Color.BLACK);
-				Utilities.DW_AddColouredText("runSURF -" + String.valueOf(runSURF.getEnabled()), Color.BLACK);
 			}
 		});
 		radio_LineDetect.addItemListener(new ItemListener() {
@@ -654,13 +708,6 @@ public class Layout_FirstScreen {
 				} else {
 					runLine.setEnabled(true);
 				}
-				Utilities.DW_AddColouredText("runImageDeriv -" + String.valueOf(runImageDeriv.getEnabled()),
-						Color.BLACK);
-				Utilities.DW_AddColouredText("runImageFeatures -" + String.valueOf(runImageFeatures.getEnabled()),
-						Color.BLACK);
-				Utilities.DW_AddColouredText("runFitElip -" + String.valueOf(runFitElip.getEnabled()), Color.BLACK);
-				Utilities.DW_AddColouredText("runLine -" + String.valueOf(runLine.getEnabled()), Color.BLACK);
-				Utilities.DW_AddColouredText("runSURF -" + String.valueOf(runSURF.getEnabled()), Color.BLACK);
 			}
 		});
 		radio_FitEllipses.addItemListener(new ItemListener() {
@@ -673,13 +720,6 @@ public class Layout_FirstScreen {
 				} else {
 					runFitElip.setEnabled(true);
 				}
-				Utilities.DW_AddColouredText("runImageDeriv -" + String.valueOf(runImageDeriv.getEnabled()),
-						Color.BLACK);
-				Utilities.DW_AddColouredText("runImageFeatures -" + String.valueOf(runImageFeatures.getEnabled()),
-						Color.BLACK);
-				Utilities.DW_AddColouredText("runFitElip -" + String.valueOf(runFitElip.getEnabled()), Color.BLACK);
-				Utilities.DW_AddColouredText("runLine -" + String.valueOf(runLine.getEnabled()), Color.BLACK);
-				Utilities.DW_AddColouredText("runSURF -" + String.valueOf(runSURF.getEnabled()), Color.BLACK);
 			}
 		});
 
@@ -695,6 +735,18 @@ public class Layout_FirstScreen {
 				}
 			}
 		});
+		radio_AlgoAlpha.addItemListener(new ItemListener() {
+			@Override
+
+			public void itemStateChanged(ItemEvent arg0) {
+				Utilities.DW_AddColouredText("\n Algo Alpha Radio TOUCHED", Color.BLACK);
+				if (runAlgoAlpha.getEnabled()) {
+					runAlgoAlpha.setEnabled(false);
+				} else {
+					runAlgoAlpha.setEnabled(true);
+				}
+			}
+		});
 
 		jp.add(radio_ImageDerivative);
 		jp.add(radio_ImageFeatures);
@@ -702,6 +754,7 @@ public class Layout_FirstScreen {
 		jp.add(radio_LineDetect);
 		jp.add(radio_FitEllipses);
 		jp.add(radio_SuperPixel);
+		jp.add(radio_AlgoAlpha);
 
 		runIPButton.addActionListener(new ActionListener() {
 			@Override
@@ -751,6 +804,15 @@ public class Layout_FirstScreen {
 					Utilities.DW_AddColouredText(selectedPath, Color.black);
 					Utilities.IP_ImageSegmentation(selectedPath);
 				}
+				if (runAlgoAlpha.getEnabled()) {
+					Utilities.DW_AddColouredText("First algorithm coming up!!", Color.MAGENTA);
+					progressBar.setStringPainted(true);
+					progressBar.setString("Running Algo alpha");
+					progressBar.setValue(0);
+					Utilities.DW_AddColouredText("Running Superpixel Example on:", Color.BLUE);
+					Utilities.DW_AddColouredText(selectedPath, Color.black);
+					Utilities.IP_ImageSegmentation(selectedPath);
+				}
 
 			}
 		});
@@ -758,6 +820,15 @@ public class Layout_FirstScreen {
 		jp.add(runIPButton);
 
 		return jp;
+	}
+	
+	public void FirstFinderAlgorithm(String imagePath) {
+		Utilities.IP_DetectFeatures(Utilities.IP_Algo_Deriv(imagePath), GrayF32.class);
+		progressBar.setValue(1);
+		Utilities.IP_Algo_Segmentation(Utilities.IP_Algo_Deriv(imagePath));
+		progressBar.setValue(2);
+		progressBar.setString("First Finder Algorithm COMPLETE");
+		
 	}
 
 }

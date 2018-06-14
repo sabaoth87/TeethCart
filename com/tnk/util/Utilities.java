@@ -9,6 +9,8 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.List;
@@ -45,6 +47,7 @@ import boofcv.abst.feature.detect.line.DetectLineHoughFootSubimage;
 import boofcv.abst.feature.detect.line.DetectLineHoughPolar;
 import boofcv.abst.filter.derivative.AnyImageDerivative;
 import boofcv.abst.segmentation.ImageSuperpixels;
+import boofcv.alg.color.ColorHsv;
 import boofcv.alg.filter.binary.BinaryImageOps;
 import boofcv.alg.filter.binary.Contour;
 import boofcv.alg.filter.binary.ThresholdImageOps;
@@ -72,6 +75,7 @@ import boofcv.gui.feature.FancyInterestPointRender;
 import boofcv.gui.feature.ImageLinePanel;
 import boofcv.gui.feature.VisualizeRegions;
 import boofcv.gui.feature.VisualizeShapes;
+import boofcv.gui.image.ImagePanel;
 import boofcv.gui.image.ShowImages;
 import boofcv.gui.image.VisualizeImageData;
 import boofcv.io.UtilIO;
@@ -88,6 +92,7 @@ import boofcv.struct.image.ImageBase;
 import boofcv.struct.image.ImageGray;
 import boofcv.struct.image.ImageType;
 import boofcv.struct.image.Planar;
+import georegression.metric.UtilAngle;
 import georegression.struct.line.LineParametric2D_F32;
 import georegression.struct.point.Point2D_F64;
 import georegression.struct.shapes.EllipseRotated_F64;
@@ -247,7 +252,7 @@ public class Utilities {
 	public static void IP_Util_SaveBI(BufferedImage image, String fileName) {
 		String TAG = "IP_Util_SaveBI ";
 		System.out.println(TAG + "Saving an image to disk...");
-		String outputPath = new String("C:\\test\\output\\"+fileName+".png");
+		String outputPath = new String("C:\\test\\output\\"+System.currentTimeMillis()+fileName+".png");
 		File f = new File(outputPath);
 		UtilImageIO.saveImage(image, outputPath);
 		System.out.println(TAG + "Saved " + outputPath);
@@ -430,7 +435,7 @@ public class Utilities {
 
 		
 		//Output the results to disk
-		String outputPath = new String("C:\\test\\output\\output00.png");
+		String outputPath = new String("C:\\test\\output\\output"+System.currentTimeMillis()+".png" );
 		
 		File f = new File(outputPath);
 		UtilImageIO.saveImage(derivX, outputPath);
@@ -457,6 +462,71 @@ public class Utilities {
 		//ShowImages.showWindow(gui, "Image Derivatives", true);
 	}
 
+	public static BufferedImage IP_Algo_Deriv(String imagePath) {
+
+		JFrame frame = new JFrame();
+		frame.setBounds(0,0,300,300);
+		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		frame.getContentPane().setLayout(new GridLayout(0, 1));
+		
+		BufferedImage input = UtilImageIO.loadImage(imagePath);
+
+		// We will use floating point images here, but GrayU8 with GrayS16 for
+		// derivatives also works
+		GrayF32 grey = new GrayF32(input.getWidth(), input.getHeight());
+		ConvertBufferedImage.convertFrom(input, grey);
+
+		// First order derivative, also known as the gradient
+		GrayF32 derivX = new GrayF32(grey.width, grey.height);
+		GrayF32 derivY = new GrayF32(grey.width, grey.height);
+
+		GImageDerivativeOps.gradient(DerivativeType.SOBEL, grey, derivX, derivY, BorderType.EXTENDED);
+
+		// Second order derivative, also known as the Hessian
+		GrayF32 derivXX = new GrayF32(grey.width, grey.height);
+		GrayF32 derivXY = new GrayF32(grey.width, grey.height);
+		GrayF32 derivYY = new GrayF32(grey.width, grey.height);
+
+		GImageDerivativeOps.hessian(DerivativeType.SOBEL, derivX, derivY, derivXX, derivXY, derivYY,
+				BorderType.EXTENDED);
+
+		// There's also a built in function for computing arbitrary derivatives
+		AnyImageDerivative<GrayF32, GrayF32> derivative = GImageDerivativeOps.createAnyDerivatives(DerivativeType.SOBEL,
+				GrayF32.class, GrayF32.class);
+
+		// the boolean sequence indicates if its an X or Y derivative
+		derivative.setInput(grey);
+		GrayF32 derivXYX = derivative.getDerivative(true, false, true);
+
+
+		
+		//Output the results to disk
+		String outputPath = new String("C:\\test\\output\\output"+System.currentTimeMillis()+".png" );
+		
+		File f = new File(outputPath);
+		UtilImageIO.saveImage(derivX, outputPath);
+		
+		IP_Util_SaveBI(ConvertBufferedImage.convertTo(derivXYX, null),"DerivXYX_output");
+		
+		BufferedImage outputXYX = VisualizeImageData.colorizeSign(derivXYX, null, -1);
+		IP_Util_SaveBI(outputXYX, "DerivXYX_output_colourized");
+		
+		BufferedImage outputX = VisualizeImageData.colorizeSign(derivX, null, -1);
+		IP_Util_SaveBI(outputX, "DerivX_output_colourized");
+		
+		BufferedImage outputY = VisualizeImageData.colorizeSign(derivY, null, -1);
+		IP_Util_SaveBI(outputY, "DerivY_output_colourized");
+		
+		BufferedImage outputXX = VisualizeImageData.colorizeSign(derivXX, null, -1);
+		IP_Util_SaveBI(outputXX, "DerivXX_output_colourized");
+		
+		BufferedImage outputYY = VisualizeImageData.colorizeSign(derivYY, null, -1);
+		IP_Util_SaveBI(outputYY, "DerivYY_output_colourized");
+		
+		return VisualizeImageData.colorizeSign(derivXX, null, -1);
+	}
+
+	
 	public GrayF32 IP_DerivXYX(String imagePath) {
 
 		BufferedImage input = UtilImageIO.loadImage(imagePath);
@@ -615,6 +685,122 @@ public class Utilities {
 		gui.addImage(outBorder, "Region Borders");
 		gui.addImage(outSegments, "Regions");
 		ShowImages.showWindow(gui,"Superpixels", false);
+	}
+	
+	public static void IP_Algo_Segmentation(BufferedImage inputImage) {
+		// you probably don't want to segment along the image's alpha channel and the code below assumes 3 channels
+		inputImage = ConvertBufferedImage.stripAlphaChannel(inputImage);
+
+		// Select input image type.  Some algorithms behave different depending on image type
+		ImageType<Planar<GrayF32>> imageType = ImageType.pl(3, GrayF32.class);
+//		ImageType<Planar<GrayU8>> imageType = ImageType.pl(3,GrayU8.class);
+//		ImageType<GrayF32> imageType = ImageType.single(GrayF32.class);
+//		ImageType<GrayU8> imageType = ImageType.single(GrayU8.class);
+
+//		ImageSuperpixels alg = FactoryImageSegmentation.meanShift(null, imageType);
+//		ImageSuperpixels alg = FactoryImageSegmentation.slic(new ConfigSlic(400), imageType);
+		ImageSuperpixels alg = FactoryImageSegmentation.fh04(new ConfigFh04(100,30), imageType);
+//		ImageSuperpixels alg = FactoryImageSegmentation.watershed(null,imageType);
+
+		// Convert image into BoofCV format
+		ImageBase colour = imageType.createImage(inputImage.getWidth(),inputImage.getHeight());
+		ConvertBufferedImage.convertFrom(inputImage, colour, true);
+
+		// Segment and display results
+		performSegmentation(alg,colour);
+		
+	}
+	
+	
+	public static void IP_SegmentColour (String imagePath) {
+				// TODO Auto-generated method stub
+				BufferedImage image = UtilImageIO.loadImage(UtilIO.pathExample(imagePath));
+
+				// Let the user select a colour
+				printClickedColour(image);
+				//Display pre-selected colours
+				showSelectedColour("Yellow", image , 1f , 1f);
+				showSelectedColour("Green", image, 1.5f, 0.65f);
+				showSelectedColour("other", image, 0.5f, 0.65f);
+	}
+	/**
+	 * Shows a colour image and allows the user to select a pixel, convert it to
+	 * HSV, print the HSV values, and calls the function below to display
+	 * similar pixels.
+	 */
+	
+	public static void printClickedColour( final BufferedImage image ) {
+		ImagePanel gui = new ImagePanel(image);
+		gui.addMouseListener(new MouseAdapter(){
+			@Override
+			public void mouseClicked(MouseEvent e ) {
+				float[] colour = new float[3];
+				int rgb = image.getRGB(e.getX(),  e.getY());
+				ColorHsv.rgbToHsv((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF, colour);
+				System.out.println("H = " + colour[0]+" S = "+colour[1]+" V = "+colour[2]);
+
+				showSelectedColour("Selected",image,colour[0],colour[1]);
+			
+			}
+		});
+		ShowImages.showWindow(gui,  "Colour Selector");
+	}
+	/** 
+	 * Selectively displays only pixels which have a similar hue and saturation 
+	 * values to what is provided. 
+	 * This is intended to be a simple example of colour based segmentation.
+	 * Colour based segmentation can be done in RGB colour, but more problematic
+	 * due to it not being intensity invariant. More robust techniques can use
+	 * Gaussian models instead of a uniform distribution, as is done below.
+	 * 
+	 * @param args
+	 */
+	
+	public static void showSelectedColour( String name ,
+											BufferedImage image,
+											float hue,
+											float saturation) {
+		Planar<GrayF32> input = ConvertBufferedImage.convertFromPlanar(image,
+																		null,
+																		true,
+																		GrayF32.class);
+		Planar<GrayF32> hsv = input.createSameShape();
+
+		// Convert into HSV
+		ColorHsv.rgbToHsv_F32(input,hsv);
+
+		// Euclidean distance squared threshold for deciding which pixels are members of the selected set
+		float maxDist2 = 0.4f*0.4f;
+
+		// Extract hue and saturation bands which are independent of intensity
+		GrayF32 H = hsv.getBand(0);
+		GrayF32 S = hsv.getBand(1);
+
+		// Adjust the relative importance of Hue and Saturation.
+		// Hue has a range of 0 to 2*PI and Saturation from 0 to 1.
+		float adjustUnits = (float)(Math.PI/2.0);
+
+		// Step through each pixel and mark how close it is to the selected colour
+		BufferedImage output = new BufferedImage(input.width, input.height, 
+												 BufferedImage.TYPE_INT_RGB);
+		for ( int y = 0; y <hsv.height; y++) {
+			//Hue is an angle in radians, so simple subtraction doesn't work
+			for (int x=0; x <hsv.width; x++) {
+				
+			float dh = UtilAngle.dist(H.unsafe_get(x, y),hue);
+			float ds = (S.unsafe_get(x, y)-saturation)*adjustUnits;
+			
+			// This distance measure is a bit naive, but good enough to
+			// demonstrate the concept
+			float dist2 = dh*dh + ds*ds;
+			if( dist2 <= maxDist2 ) {
+				output.setRGB(x,y,image.getRGB(x,y));
+			}
+			}
+		}
+		
+		ShowImages.showWindow(output, "Showing "+name);
+																		
 	}
 	
 }

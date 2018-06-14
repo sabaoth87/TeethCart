@@ -114,7 +114,8 @@ public class ExampleSegmentColour {
 		printClickedColour(image);
 		//Display pre-selected colours
 		showSelectedColour("Yellow", image , 1f , 1f);
-		showSelectedColour("Green", image, 1.5f, 0.65f);		
+		showSelectedColour("Green", image, 1.5f, 0.65f);
+		showSelectedColour("other", image, 0.5f, 0.65f);
 	}
 
 }
