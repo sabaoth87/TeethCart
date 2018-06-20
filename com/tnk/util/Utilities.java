@@ -13,6 +13,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.Date;
 import java.util.List;
 
 import javax.imageio.ImageIO;
@@ -29,6 +30,7 @@ import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.text.BadLocationException;
+import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -37,6 +39,7 @@ import javax.swing.tree.DefaultTreeModel;
 import org.ddogleg.struct.FastQueue;
 import org.ddogleg.struct.GrowQueue_I32;
 
+import com.sun.jna.platform.unix.X11.Font;
 import com.tnk.Item_OperationInput;
 
 import boofcv.abst.feature.detdesc.DetectDescribePoint;
@@ -252,7 +255,13 @@ public class Utilities {
 	public static void IP_Util_SaveBI(BufferedImage image, String fileName) {
 		String TAG = "IP_Util_SaveBI ";
 		System.out.println(TAG + "Saving an image to disk...");
-		String outputPath = new String("C:\\test\\output\\"+System.currentTimeMillis()+fileName+".png");
+		Date outputDate = new Date();
+		String outputPath = new String("C:\\test\\output\\"+
+				outputDate.getMonth()+"-"+
+				outputDate.getDate()+" " +
+				outputDate.getHours()+"h"+
+				outputDate.getMinutes()+"m "+
+				fileName + ".png");
 		File f = new File(outputPath);
 		UtilImageIO.saveImage(image, outputPath);
 		System.out.println(TAG + "Saved " + outputPath);
@@ -278,16 +287,20 @@ public class Utilities {
 
 		DetectLineHoughPolar<T, D> detectorPolar = FactoryDetectLineAlgs.houghPolar(
 				new ConfigHoughPolar(3, 30, 2, Math.PI / 180, edgeThreshold, numberOfLines), imageType, derivType);
-		List<LineParametric2D_F32> found = detectorPolar.detect(input);
+		List<LineParametric2D_F32> foundPolar = detectorPolar.detect(input);
 
 		DetectLineHoughFoot<T, D> detectorFoot = FactoryDetectLineAlgs
 				.houghFoot(new ConfigHoughFoot(3, 8, 5, edgeThreshold, maxLines), imageType, derivType);
+		List<LineParametric2D_F32> foundFoot = detectorFoot.detect(input);
+		
+		
 		DetectLineHoughFootSubimage<T, D> detectorFootsubimage = FactoryDetectLineAlgs.houghFootSub(
 				new ConfigHoughFootSubimage(3, 8, 5, edgeThreshold, maxLines, 2, 2), imageType, derivType);
+		List<LineParametric2D_F32> foundFootsub = detectorFootsubimage.detect(input);
 
 		ImageLinePanel gui = new ImageLinePanel();
 		gui.setBackground(image);
-		gui.setLines(found);
+		gui.setLines(foundPolar);
 		gui.setPreferredSize(new Dimension(image.getWidth(), image.getHeight()));
 		// ShowImages.showWindow(VisualizeBinaryData.renderBinary(filtered, false,
 		// null),"Binary",true);
@@ -326,6 +339,7 @@ public class Utilities {
 		filtered = BinaryImageOps.dilate8(filtered, 1, null);
 
 		// Find the contour around the shapes
+		
 		List<Contour> contours = BinaryImageOps.contour(filtered, ConnectRule.EIGHT, null);
 
 		// Fit an ellipse to each external contour and draw the results
@@ -339,6 +353,9 @@ public class Utilities {
 		}
 
 		IP_Util_SaveBI(ConvertBufferedImage.convertTo(filtered, null),"FitEllipses_output");
+		
+
+		IP_Util_SaveBI(image,"FitEllipses_output");
 		
 		ShowImages.showWindow(VisualizeBinaryData.renderBinary(filtered, false, null), "Binary", true);
 		ShowImages.showWindow(image, "Ellipses", true);
@@ -369,6 +386,11 @@ public class Utilities {
 		
 		System.out.println("Found Features: " + surf.getNumberOfFeatures());
 		System.out.println("First descriptor's first value: " + surf.getDescription(0).value[0]);
+		Utilities.DW_AddColouredText("Found " + surf.getNumberOfFeatures(), Color.ORANGE);
+		Utilities.DW_AddColouredText("[0]location " + surf.getLocation(0), Color.GREEN);
+		Utilities.DW_AddColouredText("[1]location " + surf.getLocation(1), Color.GREEN);
+		Utilities.DW_AddColouredText("[0]desc.double" + surf.getDescription(0).getDouble(0), Color.MAGENTA);
+		
 		//System.out.println("First descriptor's first value: " + surf.getDescription(0).);
 	}
 
@@ -435,27 +457,33 @@ public class Utilities {
 
 		
 		//Output the results to disk
-		String outputPath = new String("C:\\test\\output\\output"+System.currentTimeMillis()+".png" );
 		
-		File f = new File(outputPath);
+		
+		File f = new File(imagePath);
+		String outputPath = new String("C:\\test\\output\\output"+System.currentTimeMillis()+".png" );
+		String outputName = new String(f.getAbsolutePath().substring(f.getAbsolutePath().lastIndexOf("\\")+1) 
+				+"_"+ Long.toHexString(System.currentTimeMillis()) + "_");
 		UtilImageIO.saveImage(derivX, outputPath);
 		
 		IP_Util_SaveBI(ConvertBufferedImage.convertTo(derivXYX, null),"DerivXYX_output");
 		
 		BufferedImage outputXYX = VisualizeImageData.colorizeSign(derivXYX, null, -1);
-		IP_Util_SaveBI(outputXYX, "DerivXYX_output_colourized");
+		IP_Util_SaveBI(outputXYX, outputName + "DerivXYX_output_colourized");
 		
 		BufferedImage outputX = VisualizeImageData.colorizeSign(derivX, null, -1);
-		IP_Util_SaveBI(outputX, "DerivX_output_colourized");
+		IP_Util_SaveBI(outputX, outputName + "DerivX_output_colourized");
 		
 		BufferedImage outputY = VisualizeImageData.colorizeSign(derivY, null, -1);
-		IP_Util_SaveBI(outputY, "DerivY_output_colourized");
+		IP_Util_SaveBI(outputY, outputName + "DerivY_output_colourized");
 		
 		BufferedImage outputXX = VisualizeImageData.colorizeSign(derivXX, null, -1);
-		IP_Util_SaveBI(outputXX, "DerivXX_output_colourized");
+		IP_Util_SaveBI(outputXX, outputName + "DerivXX_output_colourized");
+		
+		BufferedImage outputXY = VisualizeImageData.colorizeSign(derivXY, null, -1);
+		IP_Util_SaveBI(outputXY, outputName + "DerivXX_output_colourized");
 		
 		BufferedImage outputYY = VisualizeImageData.colorizeSign(derivYY, null, -1);
-		IP_Util_SaveBI(outputYY, "DerivYY_output_colourized");
+		IP_Util_SaveBI(outputYY, outputName +  "DerivYY_output_colourized");
 		
 		frame.add(gui);
 		frame.setVisible(true);		
@@ -501,32 +529,45 @@ public class Utilities {
 
 		
 		//Output the results to disk
+		File f = new File(imagePath);
 		String outputPath = new String("C:\\test\\output\\output"+System.currentTimeMillis()+".png" );
-		
-		File f = new File(outputPath);
+		String outputName = new String(f.getAbsolutePath().substring(f.getAbsolutePath().lastIndexOf("\\")+1) 
+				+"_"+ Long.toHexString(System.currentTimeMillis()) + "_");
 		UtilImageIO.saveImage(derivX, outputPath);
 		
 		IP_Util_SaveBI(ConvertBufferedImage.convertTo(derivXYX, null),"DerivXYX_output");
 		
 		BufferedImage outputXYX = VisualizeImageData.colorizeSign(derivXYX, null, -1);
-		IP_Util_SaveBI(outputXYX, "DerivXYX_output_colourized");
+		IP_Util_SaveBI(outputXYX, outputName + "DerivXYX_output_colourized");
 		
 		BufferedImage outputX = VisualizeImageData.colorizeSign(derivX, null, -1);
-		IP_Util_SaveBI(outputX, "DerivX_output_colourized");
+		IP_Util_SaveBI(outputX, outputName + "DerivX_output_colourized");
 		
 		BufferedImage outputY = VisualizeImageData.colorizeSign(derivY, null, -1);
-		IP_Util_SaveBI(outputY, "DerivY_output_colourized");
+		IP_Util_SaveBI(outputY, outputName + "DerivY_output_colourized");
 		
 		BufferedImage outputXX = VisualizeImageData.colorizeSign(derivXX, null, -1);
-		IP_Util_SaveBI(outputXX, "DerivXX_output_colourized");
+		IP_Util_SaveBI(outputXX, outputName + "DerivXX_output_colourized");
+		
+		BufferedImage outputXY = VisualizeImageData.colorizeSign(derivXY, null, -1);
+		IP_Util_SaveBI(outputXY, outputName + "DerivXX_output_colourized");
 		
 		BufferedImage outputYY = VisualizeImageData.colorizeSign(derivYY, null, -1);
-		IP_Util_SaveBI(outputYY, "DerivYY_output_colourized");
+		IP_Util_SaveBI(outputYY, outputName +  "DerivYY_output_colourized");
 		
 		return VisualizeImageData.colorizeSign(derivXX, null, -1);
 	}
 
-	
+	/**
+	 * LABEL IP_DerivXYX
+	 * TODO Separate all of the derivatives out into individual methods
+	 * That way, we can call them individually or link them for multiple base conditions
+	 * Compile the output(s) from next-level functions to (possibly) better determine POIs
+	 * 
+	 * 
+	 * @param imagePath
+	 * @return
+	 */
 	public GrayF32 IP_DerivXYX(String imagePath) {
 
 		BufferedImage input = UtilImageIO.loadImage(imagePath);
@@ -584,9 +625,25 @@ public class Utilities {
 		StyledDocument doc = _window.getStyledDocument();
 		javax.swing.text.Style style = _window.addStyle("Color Style", null);
 		StyleConstants.setForeground(style, colour);
+		
+		SimpleAttributeSet normal = new SimpleAttributeSet();
+        StyleConstants.setFontFamily(normal, "SansSerif");
+		StyleConstants.setForeground(style, colour);
+        StyleConstants.setFontSize(normal, 12);
+
+        SimpleAttributeSet boldBlue = new SimpleAttributeSet(normal);
+        StyleConstants.setBold(boldBlue, true);
+        StyleConstants.setFontSize(boldBlue, 15);
+        StyleConstants.setForeground(boldBlue, Color.blue);
+
+        SimpleAttributeSet highAlert = new SimpleAttributeSet(boldBlue);
+        StyleConstants.setFontSize(highAlert, 18);
+        StyleConstants.setItalic(highAlert, true);
+        StyleConstants.setForeground(highAlert, Color.red);
+
+		
 		try {
-			doc.insertString(doc.getLength(), "\n", style);
-			doc.insertString(doc.getLength(), text, style);
+			doc.insertString(doc.getLength(), "\n" + text, normal);
 		} catch (BadLocationException e) {
 			e.printStackTrace();
 		}
@@ -597,8 +654,6 @@ public class Utilities {
 	 * @param imagePath
 	 */
 	public static void IP_ImageSegmentation(String imagePath) {
-		// TODO Do I fill this with anything?
-		
 		BufferedImage image = UtilImageIO.loadImage(UtilIO.pathExample(imagePath));
 
 		// you probably don't want to segment along the image's alpha channel and the code below assumes 3 channels
@@ -622,7 +677,7 @@ public class Utilities {
 		// Segment and display results
 		performSegmentation(alg,colour);
 		
-	}
+	}	
 
 	public static <T extends ImageBase<? super T>>
 	void performSegmentation( ImageSuperpixels<? super T> alg , T colour )

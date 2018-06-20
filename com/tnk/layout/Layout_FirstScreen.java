@@ -16,10 +16,12 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.image.BufferedImage;
+import java.awt.image.ImageConsumer;
 import java.io.File;
 import java.util.Date;
 import java.util.List;
 
+import javax.imageio.ImageIO;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -54,6 +56,7 @@ import javax.swing.table.TableColumn;
 import com.tnk.Item_OperationInput;
 import com.tnk.util.FileTableModel;
 import com.tnk.util.Utilities;
+import com.tnk.util.impro.SuperpixelRunnable;
 
 import boofcv.gui.ListDisplayPanel;
 import boofcv.io.UtilIO;
@@ -117,6 +120,7 @@ public class Layout_FirstScreen {
 	// private JTree tree;
 
 	/*
+	 * LABEL IMPRO VARS
 	 * [I][P] Image Processing Controls
 	 * 
 	 * Thanks BoofCV!
@@ -136,6 +140,10 @@ public class Layout_FirstScreen {
 	public JRadioButton radio_AlgoAlpha;
 
 	private BufferedImage input;
+	private BufferedImage superpixelOutput;
+	private BufferedImage derivativeOutput;
+	private BufferedImage ellipsesOutput;
+	// ellipses
 	private ListDisplayPanel ldp;
 	private String selectedPath = "";
 
@@ -210,16 +218,16 @@ public class Layout_FirstScreen {
 	 * 
 	 */
 	private void initialize() {
-
+		
 		fileSystemView = FileSystemView.getFileSystemView();
 		desktop = Desktop.getDesktop();
 
 		frame = new JFrame();
-		frame.setBounds(0, 0, 1024, 768); // for my small ass monitor :'(
+		frame.setBounds(0, 0, 1366, 768); // for my small ass monitor :'(
 		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		frame.getContentPane().setLayout(new MigLayout("", "[grow][][grow][grow]",
-														   "[grow][][grow]"));
-
+		frame.getContentPane().setLayout(new MigLayout("", "[grow|grow|grow]",
+														   "[fill|fill|fill]"));
+		
 		//this is for the file details
 		// TODO make this into the picture preview
 		initializeMyViewer();
@@ -230,8 +238,7 @@ public class Layout_FirstScreen {
 
 		scrollpane_se = new JScrollPane();
 		scrollpane_se.setViewportView(ldp);
-		scrollpane_se.setBorder(new BevelBorder(BevelBorder.RAISED, Color.darkGray, null, null, null));
-		scrollpane_se.setBackground(Color.GRAY);
+		scrollpane_se.setBorder(new BevelBorder(BevelBorder.RAISED, Color.ORANGE, null, null, null));
 		scrollpane_se.setColumnHeaderView(label_se);
 
 		readable = new JCheckBox();
@@ -281,7 +288,6 @@ public class Layout_FirstScreen {
 		JScrollPane scrollpane_center = new JScrollPane();
 		scrollpane_center.setViewportView(viewerTable);
 		scrollpane_center.setBorder(new BevelBorder(BevelBorder.RAISED, Color.darkGray, null, null, null));
-		scrollpane_center.setBackground(Color.GRAY);
 
 		// This used to be the
 		// frame.getContentPane().add(scrollpane_se, "cell 1 1,grow");
@@ -295,25 +301,38 @@ public class Layout_FirstScreen {
 		JTextPane dbWindow = Utilities.DebugWindow();
 		previewWindow = new JScrollPane();
 		
+		frame.setBackground(Color.YELLOW);
+		explorerPane.setBackground(Color.RED);
+		scrollpane_se.setBackground(Color.RED);
+		sp_right.setBackground(Color.RED);
+		scrollpane_center.setBackground(Color.RED);
+		previewWindow.setBackground(Color.RED);
+		
+		
 		frame.getContentPane().add(explorerPane, "cell 0 0,grow");
 		frame.getContentPane().add(scrollpane_center, "cell 1 0,growx");
 		frame.getContentPane().add(sp_right, "cell 1 1,growx");
 		frame.getContentPane().add(dbWindow, "cell 2 0, growy");
 		frame.getContentPane().add(fileMainDetails, "cell 0 1, grow");
-		frame.getContentPane().add(previewWindow, "cell 2 1, grow, width 200:300:400, height 200:300:400");
+		frame.getContentPane().add(previewWindow, "cell 2 1, growx, height 200:300:400");
 		frame.getContentPane().add(progressBar, "cell 0 2 3 2,growx");
 
+		
+		/*
+		 * LABEL ProgressBar
+		 */
 		progressBar.setMinimum(0);
-		progressBar.setMaximum(2);
-		
-		
-		progressBar.setValue(2);
+		progressBar.setMaximum(0);
+		progressBar.setValue(0);
+		progressBar.setString("Welcome");
 		progressBar.setStringPainted(true);
 	}
 
+	public void imageLoaded(BufferedImage img) {
+		this.superpixelOutput = img;
+	}
+	
 	private void Proc_SelectedImage(String imagePath) {
-		// TODO Auto-generated method stub
-
 		if (imagePath == null) {
 			label_se.setText(imagePath);
 			imagePath = "C:\\Users\\Tom\\Pictures\\download.jpg";
@@ -322,7 +341,9 @@ public class Layout_FirstScreen {
 		label_se.setText(selectedPath);
 		input = UtilImageIO.loadImage(UtilIO.pathExample(selectedPath));
 		
-		JLabel displayPreview = new JLabel(new ImageIcon(input.getScaledInstance(200, 200, 0)));
+		int currentX = previewWindow.getWidth();
+		int currentY = previewWindow.getHeight();
+		JLabel displayPreview = new JLabel(new ImageIcon(input.getScaledInstance(currentX, currentY, 0)));
 		
 		//previewWindow = new JScrollPane(displayPreview);
 		//frame.getContentPane().remove();
@@ -669,8 +690,12 @@ public class Layout_FirstScreen {
 				Utilities.DW_AddColouredText("\n Derivative Radio TOUCHED", Color.BLACK);
 				if (runImageDeriv.getEnabled()) {
 					runImageDeriv.setEnabled(false);
+					
+					progressBar.setMaximum(progressBar.getMaximum()-1);
 				} else {
 					runImageDeriv.setEnabled(true);
+					
+					progressBar.setMaximum(progressBar.getMaximum()+1);
 				}
 			}
 		});
@@ -681,8 +706,12 @@ public class Layout_FirstScreen {
 				Utilities.DW_AddColouredText("\n Features Radio TOUCHED", Color.BLACK);
 				if (runImageFeatures.getEnabled()) {
 					runImageFeatures.setEnabled(false);
+					
+					progressBar.setMaximum(progressBar.getMaximum()-1);
 				} else {
 					runImageFeatures.setEnabled(true);
+					
+					progressBar.setMaximum(progressBar.getMaximum()+1);
 				}
 			}
 		});
@@ -693,8 +722,12 @@ public class Layout_FirstScreen {
 				Utilities.DW_AddColouredText("\n SURF Radio TOUCHED", Color.BLACK);
 				if (runSURF.getEnabled()) {
 					runSURF.setEnabled(false);
+					
+					progressBar.setMaximum(progressBar.getMaximum()-1);
 				} else {
 					runSURF.setEnabled(true);
+					
+					progressBar.setMaximum(progressBar.getMaximum()+1);
 				}
 			}
 		});
@@ -705,8 +738,12 @@ public class Layout_FirstScreen {
 				Utilities.DW_AddColouredText("\n Line Radio TOUCHED", Color.BLACK);
 				if (runLine.getEnabled()) {
 					runLine.setEnabled(false);
+					
+					progressBar.setMaximum(progressBar.getMaximum()-1);
 				} else {
 					runLine.setEnabled(true);
+					
+					progressBar.setMaximum(progressBar.getMaximum()+1);
 				}
 			}
 		});
@@ -717,8 +754,12 @@ public class Layout_FirstScreen {
 				Utilities.DW_AddColouredText("\n Ellipses Radio TOUCHED", Color.BLACK);
 				if (runFitElip.getEnabled()) {
 					runFitElip.setEnabled(false);
+					
+					progressBar.setMaximum(progressBar.getMaximum()-1);
 				} else {
 					runFitElip.setEnabled(true);
+					
+					progressBar.setMaximum(progressBar.getMaximum()+1);
 				}
 			}
 		});
@@ -730,8 +771,12 @@ public class Layout_FirstScreen {
 				Utilities.DW_AddColouredText("\n Superpixel Radio TOUCHED", Color.BLACK);
 				if (runSuperpixel.getEnabled()) {
 					runSuperpixel.setEnabled(false);
+					
+					progressBar.setMaximum(progressBar.getMaximum()-1);
 				} else {
 					runSuperpixel.setEnabled(true);
+					
+					progressBar.setMaximum(progressBar.getMaximum()+1);
 				}
 			}
 		});
@@ -765,53 +810,106 @@ public class Layout_FirstScreen {
 					Utilities.DW_AddColouredText("Image Derivation Enabled", Color.BLUE);
 
 					Utilities.DW_AddColouredText("Running Image Derivative on:", Color.BLUE);
+					
+					// LABEL Try Me
+					// See if we can make a private variable for the imagePath to label in the progress bar?
+					progressBar.setString("Running Derivative " + 
+										   progressBar.getValue() +
+										   "/" + progressBar.getMaximum() + 
+										   "_" + progressBar.getPercentComplete());
+					
 					Utilities.DW_AddColouredText(selectedPath, Color.black);
 					Utilities.IP_ImageDerivative(selectedPath);
+					progressBar.setValue(progressBar.getValue() + 1);
 				}
 
 				if (runImageFeatures.getEnabled()) {
 					Utilities.DW_AddColouredText("Image Features Enabled", Color.BLUE);
 
+					progressBar.setString("Finding Features... " + 
+										   progressBar.getValue() +
+										   "/" + progressBar.getMaximum() + 
+										   "_" + progressBar.getPercentComplete());
+					
+					
 					Utilities.DW_AddColouredText("Finding Image Features in:", Color.BLUE);
 					Utilities.DW_AddColouredText(selectedPath, Color.black);
 					Utilities.IP_DetectFeatures(input, GrayF32.class);
+					
+					progressBar.setValue(progressBar.getValue() + 1);
 				}
 				if (runSURF.getEnabled()) {
 					Utilities.DW_AddColouredText("Easy Surf Enabled", Color.BLUE);
 
+					progressBar.setString("SURFing...tubular!  " + 
+										   progressBar.getValue() +
+										   "/" + progressBar.getMaximum() + 
+										   "_" + progressBar.getPercentComplete());
+					
+					
 					Utilities.DW_AddColouredText("Running Easy SURF on:", Color.BLUE);
 					Utilities.DW_AddColouredText(selectedPath, Color.black);
 					Utilities.IP_EasySURF(selectedPath);
+					
+					progressBar.setValue(progressBar.getValue() + 1);
 				}
 				if (runLine.getEnabled()) {
 					Utilities.DW_AddColouredText("Line Detection Enabled", Color.BLUE);
 
+					progressBar.setString("Looking for lines... " + 
+							   progressBar.getValue() +
+							   "/" + progressBar.getMaximum() + 
+							   "_" + progressBar.getPercentComplete());
+					
 					Utilities.DW_AddColouredText("Running Line Detection on:", Color.BLUE);
 					Utilities.DW_AddColouredText(selectedPath, Color.black);
 					Utilities.IP_LineDetect(selectedPath, GrayU8.class, GrayS16.class, 7);
+					
+					progressBar.setValue(progressBar.getValue() + 1);
 				}
 				if (runFitElip.getEnabled()) {
 					Utilities.DW_AddColouredText("Fit Ellippses Enabled", Color.BLUE);
 
+					progressBar.setString("Drawing circles... " + 
+							   progressBar.getValue() +
+							   "/" + progressBar.getMaximum() + 
+							   "_" + progressBar.getPercentComplete());
+					
 					Utilities.DW_AddColouredText("Running Fit Ellipses on:", Color.BLUE);
 					Utilities.DW_AddColouredText(selectedPath, Color.black);
 					Utilities.IP_FitEllipses(selectedPath);
+					
+					progressBar.setValue(progressBar.getValue() + 1);
 				}
 				if (runSuperpixel.getEnabled()) {
 					Utilities.DW_AddColouredText("Superpixel Run en Route!", Color.MAGENTA);
 
+					progressBar.setString("Superpixellating the s&^% out of it..." + 
+							   progressBar.getValue() +
+							   "/" + progressBar.getMaximum() + 
+							   "_" + progressBar.getPercentComplete());
+					
 					Utilities.DW_AddColouredText("Running Superpixel Example on:", Color.BLUE);
 					Utilities.DW_AddColouredText(selectedPath, Color.black);
-					Utilities.IP_ImageSegmentation(selectedPath);
+					//Utilities.IP_ImageSegmentation(selectedPath);
+					SuperpixelRunnable sr = new SuperpixelRunnable(selectedPath);
+					Thread superpix = new Thread(sr);
+					superpix.setName(selectedPath);
+					superpix.start();
+					
+					progressBar.setValue(progressBar.getValue() + 1);
 				}
 				if (runAlgoAlpha.getEnabled()) {
 					Utilities.DW_AddColouredText("First algorithm coming up!!", Color.MAGENTA);
-					progressBar.setStringPainted(true);
-					progressBar.setString("Running Algo alpha");
-					progressBar.setValue(0);
+					progressBar.setString("Initiating Alpha... " + 
+							   progressBar.getValue() +
+							   "/" + progressBar.getMaximum() + 
+							   "_" + progressBar.getPercentComplete());
 					Utilities.DW_AddColouredText("Running Superpixel Example on:", Color.BLUE);
 					Utilities.DW_AddColouredText(selectedPath, Color.black);
 					Utilities.IP_ImageSegmentation(selectedPath);
+					
+					progressBar.setValue(progressBar.getValue() + 1);
 				}
 
 			}
@@ -830,5 +928,5 @@ public class Layout_FirstScreen {
 		progressBar.setString("First Finder Algorithm COMPLETE");
 		
 	}
-
+	
 }

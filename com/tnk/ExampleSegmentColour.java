@@ -41,11 +41,11 @@ public class ExampleSegmentColour {
 				ColorHsv.rgbToHsv((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF, colour);
 				System.out.println("H = " + colour[0]+" S = "+colour[1]+" V = "+colour[2]);
 
-				showSelectedColour("Selected",image,colour[0],colour[1]);
+				showSelectedColour("hue:"+ colour[0] + " sat: " + colour[1],image,colour[0],colour[1]);
 			
 			}
 		});
-		ShowImages.showWindow(gui,  "Colour Selector");
+		ShowImages.showWindow(gui,  "Click a colour area!");
 	}
 	
 	/** 
